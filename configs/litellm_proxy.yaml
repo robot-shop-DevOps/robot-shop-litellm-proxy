@@ -1,0 +1,9 @@
+model_list:
+  - model_name: gemini-flash
+    litellm_params:
+      model: vertex_ai/gemini-2.5-flash
+      vertex_project: robotshop-platform-dev
+      vertex_location: asia-south1
+
+litellm_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY

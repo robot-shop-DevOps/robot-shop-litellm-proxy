@@ -1,0 +1,21 @@
+apiVersion: serving.knative.dev/v1
+
+kind: Service
+
+metadata:
+  name: litellm-proxy
+
+spec:
+  template:
+    spec:
+      serviceAccountName: litellm-proxy@robotshop-platform-dev.iam.gserviceaccount.com
+      containers:
+        - image: ${IMAGE}
+          ports:
+            - containerPort: 4000
+          env:
+            - name: LITELLM_PROXY_MASTER_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: litellm-proxy-master-key
+                  key: latest
