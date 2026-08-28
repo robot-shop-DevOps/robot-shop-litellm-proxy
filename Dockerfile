@@ -10,4 +10,4 @@ COPY configs/litellm_proxy.yaml ./configs/litellm_proxy.yaml
 
 EXPOSE 4000
 
-CMD ["litellm", "--config", "/app/configs/litellm_proxy.yaml"]
+CMD ["litellm", "--config", "/app/config/litellm.yaml", "--port", "4000", "--host", "0.0.0.0"]
