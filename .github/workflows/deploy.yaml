@@ -1,0 +1,20 @@
+name: Deploy LiteLLM Proxy to Cloud Run
+
+on:
+  push:
+    branches-ignore:
+      - main  
+
+  pull_request:
+    branches:
+      - develop
+
+  workflow_dispatch:
+
+jobs:
+  build:
+    uses: robot-shop-DevOps/robot-shop-github-actions/.github/workflows/gcp-cloudrun.yaml@gcp
+    with:
+      IMAGE: litellm-proxy
+      DOCKERFILE_PATH: ./Dockerfile
+      CLOUD_RUN_YAML_PATH: ./cloudrun.yaml
