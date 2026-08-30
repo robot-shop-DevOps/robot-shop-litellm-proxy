@@ -56,6 +56,11 @@ jobs:
           ENV_NAME: LITELLM_PROXY_MASTER_KEY
           PROJECT: ${{ env.GCP_PROJECT }}
 
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
       - name: Generate agent virtual key
         env:
           LITELLM_PROXY_URL: ${{ inputs.litellm_proxy_url }}
