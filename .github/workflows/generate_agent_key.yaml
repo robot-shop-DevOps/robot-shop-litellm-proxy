@@ -57,6 +57,7 @@ jobs:
         uses: robot-shop-DevOps/robot-shop-github-actions/.github/actions/gcp/identity-token@gcp
         with:
           AUDIENCE: ${{ inputs.litellm_proxy_url }}
+          SERVICE_ACCOUNT: ${{ env.CLOUD_RUN_SERVICE_ACCOUNT }}
           ENV_NAME: GOOGLE_ID_TOKEN
 
       - name: Generate agent virtual key
