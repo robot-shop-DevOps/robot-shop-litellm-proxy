@@ -71,6 +71,7 @@ jobs:
         run: |
           set -e
 
+          pip install requests
           python scripts/generate_agent_key.py
 
       - name: Push virtual key to Google Secret Manager
