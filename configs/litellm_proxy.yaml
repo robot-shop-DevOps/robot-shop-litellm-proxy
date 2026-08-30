@@ -5,5 +5,8 @@ model_list:
       vertex_project: robotshop-platform-dev
       vertex_location: asia-south1
 
-litellm_settings:
+general_settings:
   master_key: os.environ/LITELLM_MASTER_KEY
+  custom_auth: custom_auth.user_api_key_auth
+  custom_auth_settings:
+    mode: "auto"

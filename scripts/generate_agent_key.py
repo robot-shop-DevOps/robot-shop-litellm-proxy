@@ -1,57 +1,55 @@
+#!/usr/bin/env python3
+
+import argparse
 import os
-import sys
-import requests
+import time
+import uuid
+
+import jwt
+
+JWT_ALGORITHM = "HS256"
 
 
-LITELLM_PROXY_URL = os.environ["LITELLM_PROXY_URL"]
-MASTER_KEY = os.environ["LITELLM_PROXY_MASTER_KEY"]
-AGENT = os.environ["AGENT"]
-MODELS = os.environ["MODELS"].split()
+def generate_token(agent_id: str, models: list, days: int, secret: str) -> str:
+    now = int(time.time())
+    payload = {
+        "sub": agent_id,          
+        "models": models,       
+        "iat": now,
+        "exp": now + days * 86400,
+        "jti": str(uuid.uuid4()), 
+    }
+    return jwt.encode(payload, secret, algorithm=JWT_ALGORITHM)
 
 
-print("Starting LiteLLM virtual key generation...")
-print(f"Agent: {AGENT}")
-print(f"Models: {', '.join(MODELS)}")
-print(f"LiteLLM URL: {LITELLM_PROXY_URL}")
+def main():
+    parser = argparse.ArgumentParser(description="Generate a scoped token for an ADK agent")
+    parser.add_argument("--agent-id", required=True, help="Unique identifier for the agent (shows up in proxy logs)")
+    parser.add_argument("--models", nargs="+", required=True, help="Model names this agent may call")
+    parser.add_argument("--days", type=int, default=60, help="Token validity in days (default: 60)")
+    parser.add_argument("--output-file", help="Write the token here instead of stdout")
+    args = parser.parse_args()
 
-try:
-    response = requests.post(
-        f"{LITELLM_PROXY_URL}/key/generate",
-        headers={
-            "Authorization": f"Bearer {MASTER_KEY}",
-            "Content-Type": "application/json",
-        },
-        json={
-            "key_alias": AGENT,
-            "models": MODELS,
-        },
-        timeout=30,
-    )
+    secret = os.environ.get("LITELLM_PROXY_JWT_SECRET")
+    if not secret:
+        raise SystemExit("LITELLM_PROXY_JWT_SECRET env var must be set (same secret the proxy verifies against)")
 
-    response.raise_for_status()
+    token = generate_token(args.agent_id, args.models, args.days, secret)
 
-except requests.RequestException as exc:
-    print(f"ERROR: Failed to generate LiteLLM virtual key: {exc}", file=sys.stderr)
-
-    if response is not None:
-        print(
-            f"LiteLLM response status: {response.status_code}",
-            file=sys.stderr,
+    github_output = os.environ.get("GITHUB_OUTPUT")
+    if github_output:
+        with open(github_output, "a") as f:
+            f.write(f"token={token}\n")
+    elif args.output_file:
+        with open(args.output_file, "w") as f:
+            f.write(token)
+        os.chmod(args.output_file, 0o600)
+    else:
+        raise SystemExit(
+            "No GITHUB_OUTPUT detected and no --output-file given — "
+            "refusing to print the token. Pass --output-file <path> for local use."
         )
 
-    sys.exit(1)
 
-
-data = response.json()
-virtual_key = data.get("key")
-
-if not virtual_key:
-    print("ERROR: LiteLLM response did not contain a virtual key.", file=sys.stderr)
-    sys.exit(1)
-
-print(f"::add-mask::{virtual_key}")
-
-with open(os.environ["GITHUB_ENV"], "a") as env_file:
-    env_file.write(f"LITELLM_VIRTUAL_KEY={virtual_key}\n")
-
-print("LiteLLM virtual key generated successfully.")
+if __name__ == "__main__":
+    main()

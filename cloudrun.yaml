@@ -19,3 +19,9 @@ spec:
                 secretKeyRef:
                   name: litellm-proxy-master-key
                   key: latest
+                  
+            - name: LITELLM_PROXY_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: litellm-proxy-jwt-secret
+                  key: latest

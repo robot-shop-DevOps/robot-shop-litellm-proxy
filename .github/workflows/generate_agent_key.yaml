@@ -1,14 +1,8 @@
-name: Generate Virtual Key for ADK Agent
+name: Generate Agent Key for ADK Agent
 
 on:
   workflow_dispatch:
     inputs:
-      litellm_proxy_url:
-        description: 'LiteLLM Proxy URL'
-        required: true
-        default: 'https://litellm-proxy-1034830772222.asia-south1.run.app'
-        type: string
-
       agent_id:
         description: 'Agent identifier (lowercase, hyphen-separated)'
         required: true
@@ -19,11 +13,16 @@ on:
         required: true
         type: string
 
+      key_validity_days:
+        description: 'Number of days the key should be valid for'
+        required: false
+        type: number
+
 env:
   GCP_PROJECT: robotshop-platform-dev
   WIF_PROVIDER: projects/1034830772222/locations/global/workloadIdentityPools/github-actions/providers/github
   CLOUD_RUN_SERVICE_ACCOUNT: cloud-run@robotshop-platform-dev.iam.gserviceaccount.com
-  LITELLM_PROXY_MASTER_SECRET: litellm-proxy-master-key
+  JWT_SIGNING_SECRET: litellm-proxy-jwt-secret
 
 jobs:
   generate_key:
@@ -40,39 +39,44 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Authenticate to Google Cloud
-        uses: robot-shop-DevOps/robot-shop-github-actions/.github/actions/gcp/cloud-run-login@gcp
+        id: gcp_auth
+        uses: robot-shop-DevOps/robot-shop-github-actions/.github/actions/gcp/wif-login@gcp
         with:
           GCP_PROJECT: ${{ env.GCP_PROJECT }}
           WORKLOAD_IDENTITY_PROVIDER: ${{ env.WIF_PROVIDER }}
           SERVICE_ACCOUNT: ${{ env.CLOUD_RUN_SERVICE_ACCOUNT }}
+          TOKEN_FORMAT: access_token
 
-      - name: Get LiteLLM Proxy master key
+      - name: Get JWT signing secret
         uses: robot-shop-DevOps/robot-shop-github-actions/.github/actions/gcp/secret-manager-fetch@gcp
         with:
-          SECRET_NAME: ${{ env.LITELLM_PROXY_MASTER_SECRET }}
-          ENV_NAME: LITELLM_PROXY_MASTER_KEY
+          SECRET_NAME: ${{ env.JWT_SIGNING_SECRET }}
+          ENV_NAME: JWT_SECRET
           PROJECT: ${{ env.GCP_PROJECT }}
 
-      - name: Get LiteLLM Proxy identity token
-        uses: robot-shop-DevOps/robot-shop-github-actions/.github/actions/gcp/identity-token@gcp
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
-          AUDIENCE: ${{ inputs.litellm_proxy_url }}
-          ENV_NAME: GOOGLE_ID_TOKEN
+          python-version: '3.11'
 
-      - name: Generate agent virtual key
+      - name: Generate agent key
+        id: generate_key
         env:
-          LITELLM_PROXY_URL: ${{ inputs.litellm_proxy_url }}
-          LITELLM_PROXY_MASTER_KEY: ${{ env.LITELLM_PROXY_MASTER_KEY }}
           AGENT: ${{ inputs.agent_id }}
           MODELS: ${{ inputs.models }}
-          GOOGLE_ID_TOKEN: ${{ env.GOOGLE_ID_TOKEN }}
+          JWT_SECRET: ${{ env.JWT_SECRET }}
         run: |
           set -e
-          python scripts/generate_token.py
 
-      - name: Push virtual key to Google Secret Manager
+          pip install pyjwt
+          python scripts/generate_agent_key.py \
+            --agent_id "$AGENT" \
+            --models "$MODELS" \
+            --days ${{ inputs.key_validity_days }}
+
+      - name: Push agent key to Google Secret Manager
         uses: robot-shop-DevOps/robot-shop-github-actions/.github/actions/gcp/secret-manager-push@gcp
         with:
-          SECRET_NAME: adk-${{ inputs.agent_id }}-litellm-key
-          SECRET_VALUE: ${{ env.LITELLM_VIRTUAL_KEY }}
+          SECRET_NAME: litellm-proxy-adk-${{ inputs.agent_id }}-key
+          SECRET_VALUE: ${{ steps.generate_key.outputs.token }}
           PROJECT: ${{ env.GCP_PROJECT }}

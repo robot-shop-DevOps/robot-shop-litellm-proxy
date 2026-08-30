@@ -6,7 +6,7 @@ COPY requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY configs/litellm_proxy.yaml ./configs/litellm_proxy.yaml
+COPY configs/ ./configs/
 
 EXPOSE 4000
 
