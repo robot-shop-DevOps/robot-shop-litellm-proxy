@@ -4,7 +4,7 @@ from fastapi import Request
 from litellm.proxy._types import UserAPIKeyAuth
 
 JWT_ALGORITHM = "HS256"
-JWT_SECRET = os.environ["JWT_SECRET"] 
+JWT_SECRET = os.environ["LITELLM_PROXY_JWT_SECRET"] 
 
 
 async def user_api_key_auth(request: Request, api_key: str) -> UserAPIKeyAuth:
