@@ -62,7 +62,7 @@ jobs:
       - name: Generate agent key
         id: generate_key
         env:
-          JWT_SECRET: ${{ env.JWT_SECRET }}
+          LITELLM_PROXY_JWT_SECRET: ${{ env.JWT_SECRET }}
         run: |
           set -e
 
