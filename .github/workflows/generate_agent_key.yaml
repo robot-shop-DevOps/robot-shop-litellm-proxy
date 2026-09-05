@@ -62,16 +62,14 @@ jobs:
       - name: Generate agent key
         id: generate_key
         env:
-          AGENT: ${{ inputs.agent_id }}
-          MODELS: ${{ inputs.models }}
-          JWT_SECRET: ${{ env.JWT_SECRET }}
+          LITELLM_PROXY_JWT_SECRET: ${{ env.JWT_SECRET }}
         run: |
           set -e
 
           pip install pyjwt
           python scripts/generate_agent_key.py \
-            --agent_id "$AGENT" \
-            --models "$MODELS" \
+            --agent-id "${{ inputs.agent_id }}" \
+            --models "${{ inputs.models }}" \
             --days ${{ inputs.key_validity_days }}
 
       - name: Push agent key to Google Secret Manager
